@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full overflow-hidden">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Antrian Online - BLUD UPTD PUSKESMAS ULUNAMBO</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        teal: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                            950: '#042f2e',
+                        },
+                        navy: {
+                            800: '#1e293b',
+                            900: '#0f172a',
+                            950: '#020617',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Lock HTML and BODY to exactly viewport height with no page scrollbar */
+        html, body {
+            height: 100%;
+            max-height: 100vh;
+            overflow: hidden !important;
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 232, 240, 0.9);
+        }
+
+        .glass-dark {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+        }
+
+        @keyframes marquee {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        .animate-marquee {
+            display: inline-block;
+            white-space: nowrap;
+            animation: marquee 22s linear infinite;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printableTicket, #printableTicket * {
+                visibility: visible;
+            }
+            #printableTicket {
+                position: fixed;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
+                width: 320px;
+                margin: 0;
+                padding: 20px;
+                box-shadow: none !important;
+                border: 2px dashed #000 !important;
+                background: white !important;
+                color: black !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+
+        .active-pulse {
+            animation: pulse-border 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse-border {
+            0%, 100% { border-color: rgba(20, 184, 166, 1); box-shadow: 0 0 20px rgba(20, 184, 166, 0.4); }
+            50% { border-color: rgba(20, 184, 166, 0.3); box-shadow: 0 0 5px rgba(20, 184, 166, 0.1); }
+        }
+
+        /* Custom Scrollbar for internal table only */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="text-slate-800 h-screen max-h-screen flex flex-col justify-between select-none">
+
+    <!-- COMPACT HEADER / NAVIGATION TABS SWITCHER -->
+    <header class="bg-gradient-to-r from-teal-800 via-teal-700 to-teal-900 text-white shadow-md z-50 flex-none h-14 no-print">
+        <div class="h-full px-4 flex items-center justify-between">
+            <!-- Logo & Title -->
+            <div class="flex items-center space-x-2.5">
+                <div class="bg-white p-1.5 rounded-xl shadow-md text-teal-700 flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-hospital-user text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-sm sm:text-base font-black tracking-tight leading-none text-white uppercase">BLUD UPTD PUSKESMAS ULUNAMBO</h1>
+                    <p class="text-[10px] text-teal-200 leading-tight flex items-center gap-1">
+                        <i class="fa-solid fa-notes-medical"></i> Sistem Antrian Online Terpadu
+                    </p>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs Switcher -->
+            <nav class="flex bg-teal-950/50 p-1 rounded-xl border border-teal-600/40 text-xs">
+                <button onclick="switchView('patient')" id="nav-patient" class="nav-btn px-3 py-1.5 rounded-lg font-semibold transition-all duration-200 flex items-center gap-1.5 bg-white text-teal-800 shadow">
+                    <i class="fa-solid fa-user-plus text-xs"></i> <span>Ambil Antrian</span>
+                </button>
+                <button onclick="switchView('officer')" id="nav-officer" class="nav-btn px-3 py-1.5 rounded-lg font-semibold transition-all duration-200 flex items-center gap-1.5 text-teal-100 hover:text-white hover:bg-teal-700/50">
+                    <i class="fa-solid fa-headset text-xs"></i> <span>Panggil & Petugas</span>
+                </button>
+                <button onclick="switchView('display')" id="nav-display" class="nav-btn px-3 py-1.5 rounded-lg font-semibold transition-all duration-200 flex items-center gap-1.5 text-teal-100 hover:text-white hover:bg-teal-700/50">
+                    <i class="fa-solid fa-desktop text-xs"></i> <span>Display TV</span>
+                </button>
+            </nav>
+
+            <!-- Audio Toggle & Reset Options -->
+            <div class="flex items-center space-x-2">
+                <button id="audioToggleBtn" onclick="toggleAudio()" class="px-2.5 py-1.5 bg-teal-600/60 hover:bg-teal-600 rounded-lg text-xs font-medium flex items-center gap-1.5 transition border border-teal-500/40" title="Audio Panggilan Suara">
+                    <i id="audioIcon" class="fa-solid fa-volume-high text-amber-300"></i>
+                    <span id="audioStatusText" class="hidden sm:inline">Suara ON</span>
+                </button>
+                <button onclick="resetDataDemo()" class="px-2.5 py-1.5 bg-rose-600/80 hover:bg-rose-600 rounded-lg text-xs font-medium text-white flex items-center gap-1 transition" title="Reset Demo Data">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span class="hidden md:inline">Reset</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN FULLSCREEN VIEW CONTAINER -->
+    <main class="flex-1 h-[calc(100vh-3.5rem)] overflow-hidden p-3 sm:p-4">
+
+        <!-- ========================================================= -->
+        <!-- MENU 1: AMBIL ANTRIAN (PASIEN) - 100% FULLSCREEN NO SCROLL -->
+        <!-- ========================================================= -->
+        <section id="view-patient" class="h-full flex flex-col space-y-3">
+            <!-- Compact Banner -->
+            <div class="bg-gradient-to-r from-teal-700 via-emerald-600 to-teal-800 rounded-2xl p-3 sm:p-4 text-white shadow-md shrink-0 flex items-center justify-between relative overflow-hidden">
+                <div class="relative z-10">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2 py-0.5 bg-white/20 backdrop-blur-md rounded-md text-[10px] font-bold tracking-wider uppercase">Pendaftaran Mandiri</span>
+                        <span class="text-teal-200 text-xs">BLUD UPTD PUSKESMAS ULUNAMBO</span>
+                    </div>
+                    <h2 class="text-lg sm:text-xl font-extrabold leading-tight mt-0.5">Ambil Nomor Antrian Pelayanan</h2>
+                </div>
+                <div class="text-right z-10 hidden sm:block">
+                    <span id="patientTodayDate" class="text-xs text-teal-100 font-semibold block">--</span>
+                    <span class="text-[10px] text-teal-200">Jam Layanan: 08:00 - 14:00 WITA</span>
+                </div>
+            </div>
+
+            <!-- Main 2-Column Split (Form & Ticket Side) -->
+            <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 min-h-0">
+                
+                <!-- Left Column: Form Pendaftaran -->
+                <div class="lg:col-span-7 glass-card p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between overflow-hidden">
+                    <div>
+                        <div class="flex items-center gap-2 border-b border-slate-200 pb-2 mb-3">
+                            <div class="w-6 h-6 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center font-bold text-xs">
+                                1
+                            </div>
+                            <h3 class="text-sm font-bold text-slate-800">Isi Formulir Pasien</h3>
+                        </div>
+
+                        <form id="queueRegisterForm" onsubmit="handleRegisterQueue(event)" class="space-y-3">
+                            <!-- Nama Lengkap -->
+                            <div>
+                                <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">Nama Lengkap Pasien *</label>
+                                <div class="relative">
+                                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 text-xs">
+                                        <i class="fa-solid fa-user"></i>
+                                    </span>
+                                    <input type="text" id="patientName" required placeholder="Masukkan Nama Lengkap" class="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-xs transition">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <!-- NIK / No. BPJS -->
+                                <div>
+                                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">NIK / No. BPJS (16 Digit) *</label>
+                                    <div class="relative">
+                                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 text-xs">
+                                            <i class="fa-solid fa-id-card"></i>
+                                        </span>
+                                        <input type="text" id="patientNik" required maxlength="16" placeholder="16 Digit Angka" pattern="[0-9]{16}" title="Masukkan 16 angka NIK/BPJS" class="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-teal-500 text-xs transition">
+                                    </div>
+                                </div>
+
+                                <!-- Jenis Pasien -->
+                                <div>
+                                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">Jenis Pasien *</label>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <label class="cursor-pointer border border-slate-300 rounded-xl px-2 py-1.5 flex items-center justify-center gap-1.5 hover:bg-slate-50 text-xs font-semibold has-[:checked]:border-teal-600 has-[:checked]:bg-teal-50 has-[:checked]:text-teal-700">
+                                            <input type="radio" name="patientType" value="BPJS" checked class="accent-teal-600 text-xs">
+                                            BPJS
+                                        </label>
+                                        <label class="cursor-pointer border border-slate-300 rounded-xl px-2 py-1.5 flex items-center justify-center gap-1.5 hover:bg-slate-50 text-xs font-semibold has-[:checked]:border-teal-600 has-[:checked]:bg-teal-50 has-[:checked]:text-teal-700">
+                                            <input type="radio" name="patientType" value="Umum" class="accent-teal-600 text-xs">
+                                            Umum
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Pilih Klaster Tujuan -->
+                            <div>
+                                <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">Pilih Klaster Pelayanan *</label>
+                                <div class="relative">
+                                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 text-xs">
+                                        <i class="fa-solid fa-sitemap"></i>
+                                    </span>
+                                    <select id="poliSelect" required class="w-full pl-9 pr-8 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-teal-500 text-xs appearance-none bg-white font-semibold text-slate-700 transition">
+                                        <option value="" disabled selected>-- Pilih Klaster Pelayanan --</option>
+                                        <option value="KLASTER_1">Klaster 1 (Kode A)</option>
+                                        <option value="KLASTER_2">Klaster 2 (Kode B)</option>
+                                        <option value="KLASTER_3">Klaster 3 (Kode C)</option>
+                                        <option value="KLASTER_4">Klaster 4 (Kode D)</option>
+                                        <option value="KLASTER_5">Lintas Klaster (Kode E)</option>
+                                    </select>
+                                    <span class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 pointer-events-none text-xs">
+                                        <i class="fa-solid fa-chevron-down"></i>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">Tanggal Kunjungan</label>
+                                    <input type="date" id="visitDate" readonly class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-100 text-slate-600 text-xs font-medium">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">Perkiraan Kedatangan</label>
+                                    <select id="visitTime" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white">
+                                        <option value="08:00 - 09:00">Sesi 1 (08:00 - 09:00)</option>
+                                        <option value="09:00 - 10:00">Sesi 2 (09:00 - 10:00)</option>
+                                        <option value="10:00 - 11:00">Sesi 3 (10:00 - 11:00)</option>
+                                        <option value="11:00 - 12:00">Sesi 4 (11:00 - 12:00)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl shadow-md shadow-teal-600/20 transition flex items-center justify-center gap-2 text-xs uppercase tracking-wider mt-2">
+                                <i class="fa-solid fa-ticket"></i> Ambil Tiket Antrian Sekarang
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Watermark info footer -->
+                    <div class="text-[10px] text-slate-400 border-t border-slate-200/60 pt-2 text-center">
+                        BLUD UPTD PUSKESMAS ULUNAMBO • Melayani Dengan Senyum & Kasih Sayang
+                    </div>
+                </div>
+
+                <!-- Right Column: Digital Ticket & Status Ringkas -->
+                <div class="lg:col-span-5 flex flex-col space-y-3 min-h-0">
+                    <!-- Ticket Output Area -->
+                    <div id="ticketContainer" class="hidden flex-1 bg-white p-4 rounded-2xl border-2 border-dashed border-teal-500 shadow-md flex flex-col justify-between">
+                        <div id="printableTicket">
+                            <div class="text-center border-b border-slate-200 pb-2">
+                                <span class="text-[10px] font-black uppercase tracking-wider text-teal-700 block">BLUD UPTD PUSKESMAS ULUNAMBO</span>
+                                <h3 class="text-base font-black text-slate-800">TIKET ANTRIAN ONLINE</h3>
+                                <p id="ticketDateText" class="text-[10px] text-slate-500">--</p>
+                            </div>
+
+                            <div class="text-center py-2">
+                                <p class="text-[10px] font-bold text-slate-400 uppercase">Tujuan Klaster</p>
+                                <p id="ticketPoliName" class="text-base font-black text-teal-800 uppercase">KLASTER 1</p>
+
+                                <div class="my-2 inline-block bg-teal-50 px-6 py-2 rounded-2xl border border-teal-200">
+                                    <span id="ticketNumber" class="text-4xl font-black tracking-tight text-teal-700">A-001</span>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-1 text-left bg-slate-50 p-2 rounded-xl text-[11px] border border-slate-100">
+                                    <div>
+                                        <span class="text-slate-400 block">Pasien:</span>
+                                        <strong id="ticketPatientName" class="text-slate-700 block truncate">--</strong>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-400 block">Tipe:</span>
+                                        <strong id="ticketPatientType" class="text-slate-700 block">--</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Ticket Action Buttons -->
+                        <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 no-print">
+                            <button onclick="window.print()" class="py-2 px-3 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition">
+                                <i class="fa-solid fa-print"></i> Cetak Tiket
+                            </button>
+                            <button onclick="shareToWhatsApp()" class="py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition">
+                                <i class="fa-brands fa-whatsapp text-sm"></i> WhatsApp
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Default Placeholder (When no ticket generated yet) -->
+                    <div id="defaultTicketPlaceholder" class="flex-1 glass-card p-4 rounded-2xl border border-slate-200 text-center flex flex-col justify-center items-center">
+                        <div class="w-12 h-12 bg-teal-100 text-teal-600 rounded-full flex items-center justify-center text-xl mb-2">
+                            <i class="fa-solid fa-ticket"></i>
+                        </div>
+                        <h4 class="font-bold text-slate-800 text-xs">Tiket Digital Belum Dibuat</h4>
+                        <p class="text-[11px] text-slate-500 mt-1 max-w-xs">Isi formulir pendaftaran di sebelah kiri untuk penerbitan nomor tiket antrian.</p>
+                    </div>
+
+                    <!-- Live Summary Grid Status Per Klaster -->
+                    <div class="glass-card p-3 rounded-2xl border border-slate-200 shrink-0">
+                        <h4 class="font-bold text-slate-800 text-xs mb-2 flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-dot text-emerald-500 text-[10px] animate-pulse"></i> Ringkasan Antrian Klaster
+                        </h4>
+                        <div id="summaryPolyList" class="grid grid-cols-2 gap-1.5 text-[11px]">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+
+        <!-- ========================================================= -->
+        <!-- MENU 2: PANGGIL & PETUGAS (OFFICER) - 100% FULLSCREEN     -->
+        <!-- ========================================================= -->
+        <section id="view-officer" class="h-full flex flex-col space-y-3 hidden">
+            <!-- 5-Clusters Grid Section (No Scroll) -->
+            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-2 shrink-0" id="allClustersGrid">
+                <!-- Dynamic Cluster Action Cards rendered here -->
+            </div>
+
+            <!-- Full List Queue Table (Internal Scroll Only) -->
+            <div class="flex-1 glass-card rounded-2xl p-3 border border-slate-200 shadow-sm flex flex-col min-h-0">
+                <!-- Table Header Controls -->
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-2 shrink-0">
+                    <div>
+                        <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Daftar Antrian Kunjungan Hari Ini</h3>
+                        <p class="text-[10px] text-slate-500">Semua riwayat dan status antrian terdaftar lintas klaster</p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!-- Tombol Ekspor Data Pasien -->
+                        <button onclick="exportPatientDataToCSV()" class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition">
+                            <i class="fa-solid fa-file-excel text-xs"></i>
+                            <span>Ekspor Excel / CSV</span>
+                        </button>
+
+                        <!-- Status Filter Tabs -->
+                        <div class="flex bg-slate-100 p-0.5 rounded-lg text-[11px] font-semibold text-slate-600">
+                            <button onclick="filterTableStatus('ALL')" class="status-filter-btn px-2.5 py-1 rounded-md bg-white shadow text-slate-800 font-bold">Semua</button>
+                            <button onclick="filterTableStatus('Menunggu')" class="status-filter-btn px-2.5 py-1 rounded-md">Menunggu</button>
+                            <button onclick="filterTableStatus('Dipanggil')" class="status-filter-btn px-2.5 py-1 rounded-md">Dipanggil</button>
+                            <button onclick="filterTableStatus('Selesai')" class="status-filter-btn px-2.5 py-1 rounded-md">Selesai</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scrollable Table Body Container -->
+                <div class="flex-1 overflow-y-auto custom-scrollbar border border-slate-200/80 rounded-xl">
+                    <table class="w-full text-left text-xs">
+                        <thead class="sticky top-0 bg-slate-100 text-slate-600 uppercase font-bold text-[10px] tracking-wider z-10 border-b border-slate-200">
+                            <tr>
+                                <th class="p-2.5">No. Tiket</th>
+                                <th class="p-2.5">Klaster</th>
+                                <th class="p-2.5">Nama Pasien</th>
+                                <th class="p-2.5">NIK / BPJS</th>
+                                <th class="p-2.5">Kategori</th>
+                                <th class="p-2.5">Waktu</th>
+                                <th class="p-2.5">Status</th>
+                                <th class="p-2.5 text-right">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="officerTableBody" class="divide-y divide-slate-100 font-medium text-slate-700">
+                            <!-- Table rows populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ========================================================= -->
+        <!-- MENU 3: DISPLAY TV UTAMA - 100% FULLSCREEN (NO SCROLL)   -->
+        <!-- ========================================================= -->
+        <section id="view-display" class="h-full glass-dark rounded-2xl p-4 sm:p-5 text-white shadow-2xl border border-slate-800 flex flex-col justify-between hidden relative overflow-hidden">
+            
+            <!-- TV Screen Top Bar Header -->
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="p-2.5 bg-teal-500 text-slate-900 rounded-xl font-black text-xl shadow-lg">
+                        <i class="fa-solid fa-hospital-user"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl sm:text-2xl font-black tracking-wider uppercase text-teal-400 leading-tight">BLUD UPTD PUSKESMAS ULUNAMBO</h2>
+                        <p class="text-[11px] text-slate-300 font-medium">Papan Informasi Pemanggilan Antrian Pasien</p>
+                    </div>
+                </div>
+                
+                <!-- Live Clock WITA -->
+                <div class="text-right bg-slate-800/90 px-4 py-1.5 rounded-xl border border-slate-700">
+                    <div id="liveClock" class="text-xl font-black font-mono text-emerald-400 tracking-wider">00:00:00 WITA</div>
+                    <div id="liveDate" class="text-[10px] text-slate-400">--</div>
+                </div>
+            </div>
+
+            <!-- TV Central Main Highlight Grid -->
+            <div class="flex-1 my-3 grid grid-cols-1 lg:grid-cols-12 gap-4 items-center min-h-0">
+                
+                <!-- Active Called Number Main Box (Focus Utama) -->
+                <div class="lg:col-span-7 h-full bg-gradient-to-br from-teal-950 via-slate-900 to-slate-950 p-6 rounded-2xl border-2 border-teal-500/60 active-pulse text-center flex flex-col justify-center items-center shadow-2xl">
+                    <span class="px-3 py-1 bg-teal-500/20 text-teal-300 rounded-full text-xs font-extrabold uppercase tracking-widest border border-teal-500/40">SEDANG DIPANGGIL</span>
+                    
+                    <div class="my-3">
+                        <span id="displayMainNumber" class="text-7xl sm:text-8xl lg:text-9xl font-black tracking-tight text-white block drop-shadow-lg">A-000</span>
+                    </div>
+
+                    <div>
+                        <h3 id="displayMainPoli" class="text-2xl sm:text-3xl font-black text-teal-300 uppercase tracking-wide">KLASTER 1</h3>
+                    </div>
+                </div>
+
+                <!-- Cluster Side Mini Counters Overview -->
+                <div class="lg:col-span-5 h-full grid grid-cols-2 gap-2.5">
+                    <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700/80 flex flex-col justify-center items-center">
+                        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">KLASTER 2 (B)</div>
+                        <div id="displayPoliB" class="text-3xl sm:text-4xl font-black text-amber-400">B-000</div>
+                    </div>
+
+                    <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700/80 flex flex-col justify-center items-center">
+                        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">KLASTER 3 (C)</div>
+                        <div id="displayPoliC" class="text-3xl sm:text-4xl font-black text-emerald-400">C-000</div>
+                    </div>
+
+                    <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700/80 flex flex-col justify-center items-center">
+                        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">KLASTER 4 (D)</div>
+                        <div id="displayPoliD" class="text-3xl sm:text-4xl font-black text-sky-400">D-000</div>
+                    </div>
+
+                    <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700/80 flex flex-col justify-center items-center">
+                        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">LINTAS KLASTER (E)</div>
+                        <div id="displayPoliE" class="text-3xl sm:text-4xl font-black text-rose-400">E-000</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TV Screen Bottom Running Text Bar -->
+            <div class="shrink-0 pt-2 border-t border-slate-800 flex items-center bg-slate-900/90 rounded-xl overflow-hidden px-3 py-1.5">
+                <div class="bg-teal-600 text-white font-bold text-[11px] px-2.5 py-1 rounded-md mr-3 whitespace-nowrap flex items-center gap-1.5">
+                    <i class="fa-solid fa-bullhorn"></i> INFO ULUNAMBO
+                </div>
+                <div class="overflow-hidden w-full text-xs text-teal-200">
+                    <div class="animate-marquee font-medium">
+                        Selamat Datang di BLUD UPTD PUSKESMAS ULUNAMBO • Jam Pelayanan Senin-Sabtu Pukul 08:00 - 14:00 WITA • Jagalah kebersihan & ketertiban di ruang tunggu • Gunakan masker jika Anda mengalami batuk/flu.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- JAVASCRIPT APPLICATION LOGIC -->
+    <script>
+        // Clusters Configuration Data Structure
+        const POLI_CONFIG = {
+            'KLASTER_1': { name: 'Klaster 1', prefix: 'A' },
+            'KLASTER_2': { name: 'Klaster 2', prefix: 'B' },
+            'KLASTER_3': { name: 'Klaster 3', prefix: 'C' },
+            'KLASTER_4': { name: 'Klaster 4', prefix: 'D' },
+            'KLASTER_5': { name: 'Lintas Klaster', prefix: 'E' }
+        };
+
+        let queueData = [];
+        let audioEnabled = true;
+        let activeTableFilter = 'ALL';
+
+        // Initial Mock Demo Data (Dikosongkan sesuai permintaan)
+        const initialMockData = [];
+
+        // ON APPLICATION INIT
+        window.addEventListener('DOMContentLoaded', () => {
+            loadQueueData();
+            setupDateInputs();
+            startLiveClock();
+            updateSummaryPoli();
+            renderOfficerDashboard();
+            updateDisplayScreen();
+        });
+
+        // LocalStorage Management
+        function loadQueueData() {
+            const stored = localStorage.getItem('puskesmas_ulunambo_db_v3');
+            if (stored) {
+                queueData = JSON.parse(stored);
+            } else {
+                queueData = [...initialMockData];
+                saveQueueData();
+            }
+        }
+
+        function saveQueueData() {
+            localStorage.setItem('puskesmas_ulunambo_db_v3', JSON.stringify(queueData));
+            updateSummaryPoli();
+            updateDisplayScreen();
+        }
+
+        function resetDataDemo() {
+            if (confirm('Apakah Anda yakin ingin mereset seluruh data antrian BLUD UPTD Puskesmas Ulunambo menjadi kosong?')) {
+                queueData = [...initialMockData];
+                saveQueueData();
+                renderOfficerDashboard();
+                alert('Data antrian berhasil dikosongkan.');
+            }
+        }
+
+        // View Switcher (Fullscreen Mode)
+        function switchView(viewName) {
+            document.getElementById('view-patient').classList.add('hidden');
+            document.getElementById('view-officer').classList.add('hidden');
+            document.getElementById('view-display').classList.add('hidden');
+
+            document.getElementById(`view-${viewName}`).classList.remove('hidden');
+
+            const navs = ['patient', 'officer', 'display'];
+            navs.forEach(nav => {
+                const btn = document.getElementById(`nav-${nav}`);
+                if (nav === viewName) {
+                    btn.className = "nav-btn px-3 py-1.5 rounded-lg font-semibold transition-all duration-200 flex items-center gap-1.5 bg-white text-teal-800 shadow";
+                } else {
+                    btn.className = "nav-btn px-3 py-1.5 rounded-lg font-semibold transition-all duration-200 flex items-center gap-1.5 text-teal-100 hover:text-white hover:bg-teal-700/50";
+                }
+            });
+
+            if (viewName === 'officer') renderOfficerDashboard();
+            if (viewName === 'display') updateDisplayScreen();
+        }
+
+        function setupDateInputs() {
+            const today = new Date();
+            const dateStr = today.toISOString().split('T')[0];
+            document.getElementById('visitDate').value = dateStr;
+
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const formattedDate = today.toLocaleDateString('id-ID', options);
+            document.getElementById('liveDate').innerText = formattedDate;
+            document.getElementById('ticketDateText').innerText = formattedDate;
+            document.getElementById('patientTodayDate').innerText = formattedDate;
+        }
+
+        function startLiveClock() {
+            setInterval(() => {
+                const now = new Date();
+                const clockStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WITA';
+                document.getElementById('liveClock').innerText = clockStr;
+            }, 1000);
+        }
+
+        // PATIENT REGISTRATION LOGIC
+        function handleRegisterQueue(e) {
+            e.preventDefault();
+
+            const name = document.getElementById('patientName').value.trim();
+            const nik = document.getElementById('patientNik').value.trim();
+            const type = document.querySelector('input[name="patientType"]:checked').value;
+            const poliKey = document.getElementById('poliSelect').value;
+
+            if (!poliKey) {
+                alert('Silakan pilih Klaster Pelayanan terlebih dahulu.');
+                return;
+            }
+
+            const poliInfo = POLI_CONFIG[poliKey];
+            const existingPoliQueues = queueData.filter(q => q.poliKey === poliKey);
+            const nextSeq = existingPoliQueues.length + 1;
+            const formattedSeq = String(nextSeq).padStart(3, '0');
+            const ticketNum = `${poliInfo.prefix}-${formattedSeq}`;
+
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+            const newQueueItem = {
+                id: Date.now().toString(),
+                number: ticketNum,
+                poliKey: poliKey,
+                name: name,
+                nik: nik,
+                type: type,
+                status: 'Menunggu',
+                time: timeStr
+            };
+
+            queueData.push(newQueueItem);
+            saveQueueData();
+
+            renderDigitalTicket(newQueueItem);
+            document.getElementById('queueRegisterForm').reset();
+            setupDateInputs();
+        }
+
+        function renderDigitalTicket(item) {
+            const poliInfo = POLI_CONFIG[item.poliKey];
+
+            document.getElementById('ticketPoliName').innerText = poliInfo.name.toUpperCase();
+            document.getElementById('ticketNumber').innerText = item.number;
+            document.getElementById('ticketPatientName').innerText = item.name;
+            document.getElementById('ticketPatientType').innerText = item.type;
+
+            document.getElementById('defaultTicketPlaceholder').classList.add('hidden');
+            document.getElementById('ticketContainer').classList.remove('hidden');
+        }
+
+        function shareToWhatsApp() {
+            const num = document.getElementById('ticketNumber').innerText;
+            const poli = document.getElementById('ticketPoliName').innerText;
+            const name = document.getElementById('ticketPatientName').innerText;
+
+            const text = `Halo *${name}*, Berikut Tiket Antrian Online BLUD UPTD PUSKESMAS ULUNAMBO Anda:\n\n*No. Antrian:* ${num}\n*Tujuan:* ${poli}\n*Status:* Terdaftar\n\nHarap tiba 15 menit sebelum waktu panggilan. Terima Kasih!`;
+            const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+            window.open(url, '_blank');
+        }
+
+        function updateSummaryPoli() {
+            const container = document.getElementById('summaryPolyList');
+            container.innerHTML = '';
+
+            Object.keys(POLI_CONFIG).forEach(key => {
+                const info = POLI_CONFIG[key];
+                const active = queueData.find(q => q.poliKey === key && q.status === 'Dipanggil');
+                const waitingCount = queueData.filter(q => q.poliKey === key && q.status === 'Menunggu').length;
+
+                const div = document.createElement('div');
+                div.className = "flex justify-between items-center bg-slate-50 p-2 rounded-xl border border-slate-100";
+                div.innerHTML = `
+                    <div class="truncate pr-1">
+                        <strong class="text-slate-800 block text-[11px] truncate">${info.name}</strong>
+                        <span class="text-[9px] text-slate-400">Aktif: <b class="text-teal-600 font-bold">${active ? active.number : '-'}</b></span>
+                    </div>
+                    <span class="px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded-md font-bold text-[9px] shrink-0">${waitingCount} Tunggu</span>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // OFFICER DASHBOARD LOGIC
+        function renderOfficerDashboard() {
+            const gridContainer = document.getElementById('allClustersGrid');
+            gridContainer.innerHTML = '';
+
+            Object.keys(POLI_CONFIG).forEach(key => {
+                const info = POLI_CONFIG[key];
+                const activeCalling = queueData.find(q => q.poliKey === key && q.status === 'Dipanggil');
+                const waitingList = queueData.filter(q => q.poliKey === key && q.status === 'Menunggu');
+
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-2xl p-2.5 shadow-sm border border-slate-200 flex flex-col justify-between space-y-2";
+
+                card.innerHTML = `
+                    <div>
+                        <!-- Header Klaster -->
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                            <span class="px-2 py-0.5 bg-teal-100 text-teal-800 rounded-md text-[10px] font-bold uppercase">${info.name}</span>
+                            <span class="text-[10px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.5 rounded">${waitingList.length} Menunggu</span>
+                        </div>
+
+                        <!-- Active Call Number -->
+                        <div class="text-center py-2 bg-slate-50 rounded-xl border border-slate-100 my-1.5">
+                            <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Dipanggil</span>
+                            <span class="text-2xl font-black text-teal-600 tracking-tight block leading-tight">${activeCalling ? activeCalling.number : '---'}</span>
+                            <span class="text-[10px] font-medium text-slate-600 block truncate px-1">${activeCalling ? activeCalling.name : 'Kosong'}</span>
+                        </div>
+                    </div>
+
+                    <!-- Control Buttons -->
+                    <div class="space-y-1">
+                        <div class="grid grid-cols-2 gap-1">
+                            <button onclick="callCurrentClusterQueue('${key}')" class="py-1.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-lg text-[10px] transition flex items-center justify-center gap-1">
+                                <i class="fa-solid fa-bullhorn text-[9px]"></i> Ulang
+                            </button>
+                            <button onclick="callNextClusterQueue('${key}')" class="py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-[10px] transition flex items-center justify-center gap-1">
+                                <i class="fa-solid fa-forward text-[9px]"></i> Lanjut
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-2 gap-1">
+                            <button onclick="updateClusterStatus('${key}', 'Dilewati')" class="py-1 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-lg text-[9px] transition">
+                                Lewati
+                            </button>
+                            <button onclick="updateClusterStatus('${key}', 'Selesai')" class="py-1 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-[9px] transition">
+                                Selesai
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                gridContainer.appendChild(card);
+            });
+
+            renderOfficerTable();
+        }
+
+        function renderOfficerTable() {
+            const tableBody = document.getElementById('officerTableBody');
+            tableBody.innerHTML = '';
+
+            let filtered = [...queueData];
+            if (activeTableFilter !== 'ALL') {
+                filtered = filtered.filter(q => q.status === activeTableFilter);
+            }
+
+            if (filtered.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-slate-400 text-xs">Belum ada data antrian.</td></tr>`;
+                return;
+            }
+
+            filtered.forEach(item => {
+                const info = POLI_CONFIG[item.poliKey];
+                let statusBadgeClass = 'bg-slate-100 text-slate-600';
+                if (item.status === 'Menunggu') statusBadgeClass = 'bg-amber-100 text-amber-800';
+                if (item.status === 'Dipanggil') statusBadgeClass = 'bg-teal-100 text-teal-800 font-bold';
+                if (item.status === 'Selesai') statusBadgeClass = 'bg-emerald-100 text-emerald-800';
+                if (item.status === 'Dilewati') statusBadgeClass = 'bg-rose-100 text-rose-800';
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition";
+                tr.innerHTML = `
+                    <td class="p-2 font-bold text-teal-700">${item.number}</td>
+                    <td class="p-2"><span class="px-1.5 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-bold">${info ? info.name : item.poliKey}</span></td>
+                    <td class="p-2 font-semibold text-slate-800">${item.name}</td>
+                    <td class="p-2 font-mono text-slate-500 text-[11px]">${item.nik}</td>
+                    <td class="p-2"><span class="px-1.5 py-0.5 bg-slate-200 text-slate-700 rounded text-[9px] font-bold">${item.type}</span></td>
+                    <td class="p-2 text-slate-500 text-[11px]">${item.time}</td>
+                    <td class="p-2"><span class="px-2 py-0.5 rounded-full text-[9px] ${statusBadgeClass}">${item.status}</span></td>
+                    <td class="p-2 text-right space-x-1">
+                        <button onclick="callSpecificQueue('${item.id}')" class="px-2 py-0.5 bg-teal-600 text-white rounded hover:bg-teal-700 text-[10px] font-bold" title="Panggil"><i class="fa-solid fa-bullhorn"></i></button>
+                        <button onclick="changeQueueStatus('${item.id}', 'Selesai')" class="px-2 py-0.5 bg-emerald-600 text-white rounded hover:bg-emerald-700 text-[10px] font-bold" title="Selesai"><i class="fa-solid fa-check"></i></button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        // EKSPOR DATA PASIEN KE CSV/EXCEL
+        function exportPatientDataToCSV() {
+            if (!queueData || queueData.length === 0) {
+                alert('Tidak ada data antrian pasien untuk diekspor.');
+                return;
+            }
+
+            // Define Header
+            const headers = ['No Tiket', 'Klaster Pelayanan', 'Nama Pasien', 'NIK / No BPJS', 'Jenis Pasien', 'Waktu Terdaftar', 'Status'];
+
+            // Map data items to CSV rows with proper formatting
+            const csvRows = [headers.join(';')];
+
+            queueData.forEach(item => {
+                const poliInfo = POLI_CONFIG[item.poliKey];
+                const clusterName = poliInfo ? poliInfo.name : item.poliKey;
+
+                // Escape double quotes in text fields to avoid CSV break
+                const name = `"${(item.name || '').replace(/"/g, '""')}"`;
+                // NIK formatted with single quote prefix so Excel reads it as text without scientific notation truncation
+                const nik = `"'${item.nik || ''}"`;
+                const number = `"${item.number || ''}"`;
+                const cluster = `"${clusterName}"`;
+                const type = `"${item.type || ''}"`;
+                const time = `"${item.time || ''}"`;
+                const status = `"${item.status || ''}"`;
+
+                csvRows.push([number, cluster, name, nik, type, time, status].join(';'));
+            });
+
+            // Join all rows with newline
+            const csvString = csvRows.join('\r\n');
+
+            // Add UTF-8 BOM so Microsoft Excel correctly reads special characters and Indonesian diacritics
+            const blob = new Blob(['\uFEFF' + csvString], { type: 'text/csv;charset=utf-8;' });
+
+            // Generate File Name with Current Date Stamp
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const fileName = `Data_Pasien_Puskesmas_Ulunambo_${year}-${month}-${day}.csv`;
+
+            // Trigger Download Link
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', fileName);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function filterTableStatus(status) {
+            activeTableFilter = status;
+            document.querySelectorAll('.status-filter-btn').forEach(btn => {
+                if (btn.innerText.includes(status) || (status === 'ALL' && btn.innerText.includes('Semua'))) {
+                    btn.className = "status-filter-btn px-2.5 py-1 rounded-md bg-white shadow text-slate-800 font-bold";
+                } else {
+                    btn.className = "status-filter-btn px-2.5 py-1 rounded-md text-slate-600";
+                }
+            });
+            renderOfficerTable();
+        }
+
+        function callNextClusterQueue(poliKey) {
+            const activeCallingItem = queueData.find(q => q.poliKey === poliKey && q.status === 'Dipanggil');
+            if (activeCallingItem) {
+                activeCallingItem.status = 'Selesai';
+            }
+
+            const nextInLine = queueData.find(q => q.poliKey === poliKey && q.status === 'Menunggu');
+            if (!nextInLine) {
+                alert(`Tidak ada antrian menunggu di ${POLI_CONFIG[poliKey].name}.`);
+                saveQueueData();
+                renderOfficerDashboard();
+                return;
+            }
+
+            nextInLine.status = 'Dipanggil';
+            saveQueueData();
+            renderOfficerDashboard();
+            triggerAudioCall(nextInLine);
+        }
+
+        function callCurrentClusterQueue(poliKey) {
+            const activeCallingItem = queueData.find(q => q.poliKey === poliKey && q.status === 'Dipanggil');
+            if (!activeCallingItem) {
+                alert(`Belum ada antrian yang dipanggil di ${POLI_CONFIG[poliKey].name}.`);
+                return;
+            }
+            triggerAudioCall(activeCallingItem);
+        }
+
+        function updateClusterStatus(poliKey, newStatus) {
+            const activeCallingItem = queueData.find(q => q.poliKey === poliKey && q.status === 'Dipanggil');
+            if (!activeCallingItem) {
+                alert('Tidak ada antrian aktif di klaster ini.');
+                return;
+            }
+            activeCallingItem.status = newStatus;
+            saveQueueData();
+            renderOfficerDashboard();
+        }
+
+        function callSpecificQueue(id) {
+            const target = queueData.find(q => q.id === id);
+            if (target) {
+                queueData.forEach(q => {
+                    if (q.poliKey === target.poliKey && q.status === 'Dipanggil') {
+                        q.status = 'Selesai';
+                    }
+                });
+                target.status = 'Dipanggil';
+                saveQueueData();
+                renderOfficerDashboard();
+                triggerAudioCall(target);
+            }
+        }
+
+        function changeQueueStatus(id, newStatus) {
+            const target = queueData.find(q => q.id === id);
+            if (target) {
+                target.status = newStatus;
+                saveQueueData();
+                renderOfficerDashboard();
+            }
+        }
+
+        // AUDIO SPEECH & CHIME SOUND
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            const icon = document.getElementById('audioIcon');
+            const statusText = document.getElementById('audioStatusText');
+
+            if (audioEnabled) {
+                icon.className = "fa-solid fa-volume-high text-amber-300";
+                statusText.innerText = "Suara ON";
+            } else {
+                icon.className = "fa-solid fa-volume-xmark text-slate-300";
+                statusText.innerText = "Suara OFF";
+            }
+        }
+
+        function playChimeSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                
+                const osc1 = audioCtx.createOscillator();
+                const gain1 = audioCtx.createGain();
+                osc1.type = 'sine';
+                osc1.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+                gain1.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain1.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
+                osc1.connect(gain1);
+                gain1.connect(audioCtx.destination);
+                osc1.start();
+                osc1.stop(audioCtx.currentTime + 0.8);
+
+                setTimeout(() => {
+                    const osc2 = audioCtx.createOscillator();
+                    const gain2 = audioCtx.createGain();
+                    osc2.type = 'sine';
+                    osc2.frequency.setValueAtTime(659.25, audioCtx.currentTime);
+                    gain2.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                    gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.0);
+                    osc2.connect(gain2);
+                    gain2.connect(audioCtx.destination);
+                    osc2.start();
+                    osc2.stop(audioCtx.currentTime + 1.0);
+                }, 300);
+
+            } catch (err) {
+                console.log('Audio Context Error', err);
+            }
+        }
+
+        function triggerAudioCall(queueItem) {
+            if (!audioEnabled) return;
+
+            playChimeSound();
+
+            setTimeout(() => {
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+
+                    const poliInfo = POLI_CONFIG[queueItem.poliKey];
+                    const formattedNumberCode = queueItem.number.replace('-', ' ');
+                    const speechText = `Nomor antrian, ${formattedNumberCode}, silakan menuju ${poliInfo.name}`;
+
+                    const utterance = new SpeechSynthesisUtterance(speechText);
+                    utterance.lang = 'id-ID';
+                    utterance.rate = 0.88;
+                    utterance.pitch = 1.0;
+
+                    window.speechSynthesis.speak(utterance);
+                }
+            }, 1100);
+        }
+
+        // TV DISPLAY UPDATES
+        function updateDisplayScreen() {
+            const allCalled = queueData.filter(q => q.status === 'Dipanggil');
+
+            if (allCalled.length > 0) {
+                const latest = allCalled[allCalled.length - 1];
+                const info = POLI_CONFIG[latest.poliKey];
+
+                document.getElementById('displayMainNumber').innerText = latest.number;
+                document.getElementById('displayMainPoli').innerText = info.name.toUpperCase();
+            } else {
+                document.getElementById('displayMainNumber').innerText = '---';
+                document.getElementById('displayMainPoli').innerText = 'MENUNGGU PANGGILAN';
+            }
+
+            const getActiveNum = (key) => {
+                const item = queueData.find(q => q.poliKey === key && q.status === 'Dipanggil');
+                return item ? item.number : '---';
+            };
+
+            document.getElementById('displayPoliB').innerText = getActiveNum('KLASTER_2');
+            document.getElementById('displayPoliC').innerText = getActiveNum('KLASTER_3');
+            document.getElementById('displayPoliD').innerText = getActiveNum('KLASTER_4');
+            document.getElementById('displayPoliE').innerText = getActiveNum('KLASTER_5');
+        }
+    </script>
+</body>
+</html>
